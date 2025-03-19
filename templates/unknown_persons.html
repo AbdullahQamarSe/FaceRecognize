@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unknown Persons</title>
+</head>
+<body>
+    <h1>Unknown Persons</h1>
+    <table border="1">
+        <tr>
+            <th>Image</th>
+            <th>Time</th>
+            <th>Warning</th>
+        </tr>
+        {% for person in unknown_persons %}
+        <tr>
+            <td><img src="{{ url_for('static', filename='uploads/' + person.image.split('/')[-1]) }}" width="100"></td>
+            <td>{{ person.time }}</td>
+            <td>{{ person.warning }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
