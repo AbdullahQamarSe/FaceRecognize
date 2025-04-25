@@ -31,6 +31,10 @@
                         <label for="image" class="form-label">Upload Image:</label>
                         <input type="file" id="image" name="image" class="form-control" required>
                     </div>
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Status:</label>
+                        <input type="text" id="status" name="status" class="form-control" placeholder="Enter Status">
+                    </div>
                     <button type="submit" class="btn btn-success w-100">
                         <i class="fas fa-save me-2"></i> Save Person
                     </button>
@@ -53,6 +57,7 @@
                                     <h4 class="card-title">{{ person.name }} <span class="text-muted">({{ person.age }})</span></h4>
                                     <p class="card-text"><strong>Position:</strong> {{ person.position }}</p>
                                     <p class="card-text"><strong>Description:</strong> {{ person.description }}</p>
+                                    <p class="card-text"><strong>Status:</strong> {{ person.status }}</p>
                                 </div>
                                 <div class="card-footer bg-transparent">
                                     <form action="/delete_person/{{ person.id }}" method="post">

@@ -44,6 +44,7 @@ class Person(db.Model):
     position = db.Column(db.String, nullable=True)
     description = db.Column(db.String, nullable=True)
     image = db.Column(db.String, nullable=True)
+    status = db.Column(db.String, nullable=False, default='unverified')  # New status field
 
 with app.app_context():
     db.create_all()
@@ -134,7 +135,7 @@ def load_known_faces_on_startup():
 def load_known_faces():
     global known_faces
     known_faces = []
-    people = Person.query.all()  # This will now run within the application context
+    people = Person.query.all()
     for person in people:
         if person.image and os.path.exists(person.image):
             image = face_recognition.load_image_file(person.image)
@@ -145,6 +146,7 @@ def load_known_faces():
                     "age": person.age,
                     "position": person.position,
                     "description": person.description,
+                    "status": person.status,  # Include status
                     "encoding": encoding[0]
                 })
 
@@ -177,16 +179,17 @@ def generate_frames():
             with lock:
                 for face_encoding, (top, right, bottom, left) in zip(face_encodings_cache, face_locations):
                     matches = face_recognition.compare_faces([f["encoding"] for f in known_faces], face_encoding)
-                    name, age, position, description = "Unknown", "", "", ""
+                    name, age, position, description, status = "Unknown", "", "", "", "unverified"
                     face_distances = face_recognition.face_distance([f["encoding"] for f in known_faces], face_encoding)
                     if face_distances.size > 0:
                         best_match_index = np.argmin(face_distances)
                         if matches[best_match_index]:
                             user = known_faces[best_match_index]
                             name, age, position, description = user["name"], user["age"], user["position"], user["description"]
+                            status = user["status"]
                     top, right, bottom, left = [int(coord / 0.25) for coord in (top, right, bottom, left)]
                     cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
-                    label = f"{name}, {age}, {position}"
+                    label = f"{name}, {age}, {position}, Status: {status}"
                     cv2.putText(frame, label, (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
                     cv2.putText(frame, description, (left, bottom + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
             _, buffer = cv2.imencode('.jpg', frame)
@@ -195,7 +198,7 @@ def generate_frames():
             frame_count += 1
 
         except Exception as e:
-            print(e)
+            print(e) 
             continue
 
 @app.route('/video_feed')
@@ -211,6 +214,7 @@ def add_person():
         age = request.form['age']
         position = request.form['position']
         description = request.form['description']
+        status = request.form['status']
          
         # Handle file upload
         image_file = request.files['image'] 
@@ -220,7 +224,7 @@ def add_person():
             image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             image_file.save(image_path)
 
-        new_person = Person(name=name, age=age, position=position, description=description, image=image_path)
+        new_person = Person(name=name, age=age, position=position, description=description, image=image_path, status = status)
         db.session.add(new_person)
         db.session.commit()
 
@@ -239,7 +243,8 @@ def add_person_user():
         age = request.form['age']
         position = request.form['position']
         description = request.form['description']
-        
+        status = request.form['status']  
+
         # Handle file upload
         image_file = request.files['image']
         image_path = None
@@ -248,7 +253,7 @@ def add_person_user():
             image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             image_file.save(image_path)
 
-        new_person = Person(name=name, age=age, position=position, description=description, image=image_path)
+        new_person = Person(name=name, age=age, position=position, description=description, image=image_path , status = status)
         db.session.add(new_person)
         db.session.commit()
 
@@ -295,7 +300,7 @@ def upload_image():
 
     for encoding, (top, right, bottom, left) in zip(encodings, locations):
         matches = face_recognition.compare_faces([f["encoding"] for f in known_faces], encoding)
-        name, age, position, description = "Unknown", "", "", ""
+        name, age, position, description, status = "Unknown", "", "", "", "unverified"
         
         face_distances = face_recognition.face_distance([f["encoding"] for f in known_faces], encoding)
         if len(face_distances) > 0:
@@ -303,9 +308,10 @@ def upload_image():
             if matches[best_match_index]:
                 user = known_faces[best_match_index]
                 name, age, position, description = user["name"], user["age"], user["position"], user["description"]
+                status = user["status"]
         
         cv2.rectangle(image, (left, top), (right, bottom), (0, 255, 0), 2)
-        label = f"{name}, {age}, {position}"
+        label = f"{name}, {age}, {position}, Status: {status}"
         cv2.putText(image, label, (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
         cv2.putText(image, description, (left, bottom + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
     
